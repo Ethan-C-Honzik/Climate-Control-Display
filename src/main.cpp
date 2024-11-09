@@ -208,27 +208,31 @@ void renderTemp(bool animate, uint8_t start, uint8_t size, float percent)
     delay(200);
   }
 
-  percent *= 0.94;
+  percent *= 0.8;
   uint8_t target = (uint8_t)(size * percent + 0.5);
   if (animate)
   {
     uint8_t current = 0;
-    for (uint8_t i = 0; i < 256; i++)
+    for (uint8_t i = 0; i < 64; i++)
     {
-      current = current + ((target - current) / 5);
+      uint8_t speed = (target - current) / 8;
+      if (speed == 0)
+      {
+        speed = 1;
+      }
+      current = current + speed;
       display.fillRect(start + 5, 8, current, 16, SSD1306_WHITE);
       display.display();
     }
   }
 
-  display.fillRect(start + 2, 2, target, 28, SSD1306_WHITE);
+  display.fillRect(start + 5, 8, target, 16, SSD1306_WHITE);
 
   display.setTextSize(3);
   display.setCursor(92, 5);
   display.setTextColor(SSD1306_WHITE);
   display.print(F("AC"));
   display.display();
-  delay(5000);
 }
 
 void setup()
@@ -263,7 +267,7 @@ void setup()
   // drawing operations and then update the screen all at once by calling
   // display.display(). These examples demonstrate both approaches...
 
-  renderTemp(true, 39, 88, 0.7);
+  // renderTemp(true, 39, 88, 0.7);
 
   testdrawtriangle(); // Draw triangles (outlines)
 
@@ -272,6 +276,8 @@ void setup()
   slowClear();
 
   testdrawchar(); // Draw characters of the default font
+
+  renderTemp(true, 0, 88, 1);
 
   // testdrawstyles(); // Draw 'stylized' characters
 

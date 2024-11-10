@@ -112,74 +112,67 @@ void testdrawchar(char message[])
   }
 }
 
-void testdrawstyles(void)
+void drawClimateMode(void)
 {
-  display.clearDisplay();
-
-  display.setTextSize(1);              // Normal 1:1 pixel scale
-  display.setTextColor(SSD1306_WHITE); // Draw white text
-  display.setCursor(0, 0);             // Start at top-left corner
-  display.println(F("Hello, world!"));
-
-  display.setTextColor(SSD1306_BLACK, SSD1306_WHITE); // Draw 'inverse' text
-  display.println(3.141592);
-
-  display.setTextSize(2); // Draw 2X-scale text
-  display.setTextColor(SSD1306_WHITE);
-  display.print(F("0x"));
-  display.println(0xDEADBEEF, HEX);
-
-  display.display();
-  delay(2000);
-}
-
-void drawBitmap(void)
-{
-  display.drawBitmap(
-      0,
-      0,
-      epd_bitmap_ClimateControlsFeetDefrost, LOGO_WIDTH, LOGO_HEIGHT, 1);
-  display.display();
-  delay(1000);
+  uint8_t test = millis() / 2000;
+  switch (test)
+  {
+  case 1:
+    display.drawBitmap(0, 0, climateFeet, LOGO_WIDTH, LOGO_HEIGHT, 1);
+    break;
+  case 2:
+    display.drawBitmap(0, 0, climateFace, LOGO_WIDTH, LOGO_HEIGHT, 1);
+    break;
+  case 3:
+    display.drawBitmap(0, 0, climateFeetFace, LOGO_WIDTH, LOGO_HEIGHT, 1);
+    break;
+  case 4:
+    display.drawBitmap(0, 0, climateFeetDefrost, LOGO_WIDTH, LOGO_HEIGHT, 1);
+    break;
+  case 5:
+    display.drawBitmap(0, 0, climateDefrost, LOGO_WIDTH, LOGO_HEIGHT, 1);
+    break;
+  default:
+    break;
+  }
 }
 
 void renderTemp(bool animate, uint8_t start, uint8_t size, float percent)
 {
   display.drawLine(start, 0, start + size, 0, SSD1306_WHITE);
-  display.display();
   if (animate)
   {
+    display.display();
     delay(200);
   }
   display.drawLine(start + size, 0, start + size, 31, SSD1306_WHITE);
-  display.display();
   if (animate)
   {
+    display.display();
     delay(200);
   }
   display.drawLine(start + size, 31, start, 31, SSD1306_WHITE);
-  display.display();
   if (animate)
   {
+    display.display();
     delay(200);
   }
   display.drawLine(start, 32, start, 0, SSD1306_WHITE);
-  display.display();
   if (animate)
   {
+    display.display();
     delay(200);
   }
   display.drawLine(start + (size / 2), 0, start + (size / 2), 2, SSD1306_WHITE);
-  display.display();
   if (animate)
   {
+    display.display();
     delay(200);
   }
   display.drawLine(start + (size / 2), 31, start + (size / 2), 29, SSD1306_WHITE);
-  display.display();
-
   if (animate)
   {
+    display.display();
     delay(200);
   }
 
@@ -210,43 +203,19 @@ void acIndicator()
   display.setCursor(92, 5);
   display.setTextColor(SSD1306_WHITE);
   display.print(F("AC"));
-  display.display();
 }
 
 const bool left = false;
 void setup()
 {
-  Serial.begin(9600);
-
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
   {
-    Serial.println(F("SSD1306 allocation failed"));
     for (;;)
       ; // Don't proceed, loop forever
   }
 
-  // Show initial display buffer contents on the screen --
-  // the library initializes this with an Adafruit splash screen.
-  // display.display();
-  // delay(2000); // Pause for 2 seconds
-
-  // Clear the buffer
   display.clearDisplay();
-
-  // Draw a single pixel in white
-  // display.drawPixel(10, 10, SSD1306_WHITE);
-
-  // Show the display buffer on the screen. You MUST call display() after
-  // drawing commands to make them visible on screen!
-  // display.display();
-  // delay(2000);
-  // display.display() is NOT necessary after every single drawing command,
-  // unless that's what you want...rather, you can batch up a bunch of
-  // drawing operations and then update the screen all at once by calling
-  // display.display(). These examples demonstrate both approaches...
-
-  // renderTemp(true, 39, 88, 0.7);
 
   testdrawtriangle(); // Draw triangles (outlines)
 
@@ -259,23 +228,46 @@ void setup()
     testdrawchar("WELCOME"); // Draw characters of the default font
     renderTemp(true, 0, 88, 1);
     acIndicator();
+    display.display();
   }
   else
   {
     testdrawchar("ETHAN"); // Draw characters of the default font
     renderTemp(true, 39, 88, 1);
-    drawBitmap();
+    drawClimateMode();
+    display.display();
   }
+}
 
-  // testdrawstyles(); // Draw 'stylized' characters
+uint8_t postion = 0;
+void leftRenderLoop()
+{
+  postion++;
+  renderTemp(false, 0, 88, postion / 255.0);
+  if (postion < 128)
+  {
+    acIndicator();
+  }
+}
 
-  // testscrolltext(); // Draw scrolling text
-
-  // testdrawbitmap(); // Draw a small bitmap image
-
-  // Invert and restore display, pausing in-between
+void rightRenderLoop()
+{
+  renderTemp(false, 39, 88, 1);
+  drawClimateMode();
+  display.display();
 }
 
 void loop()
 {
+
+  display.clearDisplay();
+  if (left)
+  {
+    leftRenderLoop();
+  }
+  else
+  {
+    rightRenderLoop();
+  }
+  display.display();
 }

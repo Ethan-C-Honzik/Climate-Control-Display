@@ -22,6 +22,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <icons.cpp>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -34,28 +35,6 @@
 #define OLED_RESET -1       // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-#define NUMFLAKES 10 // Number of snowflakes in the animation example
-
-#define LOGO_HEIGHT 16
-#define LOGO_WIDTH 16
-static const unsigned char PROGMEM logo_bmp[] = {
-    0b00000000, 0b11000000,
-    0b00000001, 0b11000000,
-    0b00000001, 0b11000000,
-    0b00000011, 0b11100000,
-    0b11110011, 0b11100000,
-    0b11111110, 0b11111000,
-    0b01111110, 0b11111111,
-    0b00110011, 0b10011111,
-    0b00011111, 0b11111100,
-    0b00001101, 0b01110000,
-    0b00011011, 0b10100000,
-    0b00111111, 0b11100000,
-    0b00111111, 0b11110000,
-    0b01111100, 0b11110000,
-    0b01110000, 0b01110000,
-    0b00000000, 0b00110000};
 
 void testdrawtriangle(void)
 {
@@ -104,15 +83,13 @@ void slowClear(void)
   delay(300);
 }
 
-void testdrawchar(void)
+void testdrawchar(char message[])
 {
 
   display.setTextSize(3);              // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE); // Draw white text
   display.setCursor(0, 5);             // Start at top-left corner
   display.cp437(true);                 // Use full 256 char 'Code Page 437' font
-
-  char message[] = "Welcome";
 
   // Not all the characters will fit on the display. This is normal.
   // Library will draw what it can and the rest will be clipped.
@@ -156,14 +133,12 @@ void testdrawstyles(void)
   delay(2000);
 }
 
-void testdrawbitmap(void)
+void drawBitmap(void)
 {
-  display.clearDisplay();
-
   display.drawBitmap(
-      (display.width() - LOGO_WIDTH) / 2,
-      (display.height() - LOGO_HEIGHT) / 2,
-      logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
+      0,
+      0,
+      epd_bitmap_ClimateControlsFeetDefrost, LOGO_WIDTH, LOGO_HEIGHT, 1);
   display.display();
   delay(1000);
 }
@@ -208,14 +183,14 @@ void renderTemp(bool animate, uint8_t start, uint8_t size, float percent)
     delay(200);
   }
 
-  percent *= 0.8;
+  percent *= 0.84;
   uint8_t target = (uint8_t)(size * percent + 0.5);
   if (animate)
   {
     uint8_t current = 0;
     for (uint8_t i = 0; i < 64; i++)
     {
-      uint8_t speed = (target - current) / 8;
+      uint8_t speed = (target - current) / 4;
       if (speed == 0)
       {
         speed = 1;
@@ -227,7 +202,10 @@ void renderTemp(bool animate, uint8_t start, uint8_t size, float percent)
   }
 
   display.fillRect(start + 5, 8, target, 16, SSD1306_WHITE);
+}
 
+void acIndicator()
+{
   display.setTextSize(3);
   display.setCursor(92, 5);
   display.setTextColor(SSD1306_WHITE);
@@ -235,6 +213,7 @@ void renderTemp(bool animate, uint8_t start, uint8_t size, float percent)
   display.display();
 }
 
+const bool left = false;
 void setup()
 {
   Serial.begin(9600);
@@ -275,9 +254,18 @@ void setup()
 
   slowClear();
 
-  testdrawchar(); // Draw characters of the default font
-
-  renderTemp(true, 0, 88, 1);
+  if (left)
+  {
+    testdrawchar("WELCOME"); // Draw characters of the default font
+    renderTemp(true, 0, 88, 1);
+    acIndicator();
+  }
+  else
+  {
+    testdrawchar("ETHAN"); // Draw characters of the default font
+    renderTemp(true, 39, 88, 1);
+    drawBitmap();
+  }
 
   // testdrawstyles(); // Draw 'stylized' characters
 
@@ -286,10 +274,6 @@ void setup()
   // testdrawbitmap(); // Draw a small bitmap image
 
   // Invert and restore display, pausing in-between
-  display.invertDisplay(true);
-  delay(1000);
-  display.invertDisplay(false);
-  delay(1000);
 }
 
 void loop()

@@ -35,6 +35,8 @@
 #define OLED_RESET -1       // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+const uint8_t TEMP_PIN = A0;
+const uint8_t AC_PIN = DD2;
 
 void testdrawtriangle(void)
 {
@@ -114,6 +116,7 @@ void testdrawchar(char message[])
 
 void drawClimateMode(void)
 {
+  // TODO: determine based on digital reads
   uint8_t test = millis() / 2000;
   switch (test)
   {
@@ -137,8 +140,30 @@ void drawClimateMode(void)
   }
 }
 
-void renderTemp(bool animate, uint8_t start, uint8_t size, float percent)
+const uint8_t BUFFER_SIZE = 32;
+uint16_t buffer[BUFFER_SIZE];
+uint8_t position = 0;
+void renderTemp(bool animate, uint8_t start, uint8_t size)
 {
+  int total = 0;
+  if (animate)
+  {
+    uint16_t value = analogRead(TEMP_PIN);
+    for (int i = 0; i < BUFFER_SIZE; i++)
+    {
+      buffer[i] = value;
+    }
+  }
+  else
+  {
+    buffer[position++ % BUFFER_SIZE] = analogRead(TEMP_PIN);
+  }
+  for (int i = 0; i < BUFFER_SIZE; i++)
+  {
+    total += buffer[i];
+  }
+  float percent = total / (1023.0 * BUFFER_SIZE);
+  // TODO: percent is based on analog read
   display.drawLine(start, 0, start + size, 0, SSD1306_WHITE);
   if (animate)
   {
@@ -199,13 +224,17 @@ void renderTemp(bool animate, uint8_t start, uint8_t size, float percent)
 
 void acIndicator()
 {
+  if (digitalRead(AC_PIN))
+  {
+    return;
+  }
   display.setTextSize(3);
   display.setCursor(92, 5);
   display.setTextColor(SSD1306_WHITE);
   display.print(F("AC"));
 }
 
-const bool left = false;
+const bool left = true;
 void setup()
 {
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -213,6 +242,11 @@ void setup()
   {
     for (;;)
       ; // Don't proceed, loop forever
+  }
+
+  if (left)
+  {
+    display.setRotation(2);
   }
 
   display.clearDisplay();
@@ -226,33 +260,30 @@ void setup()
   if (left)
   {
     testdrawchar("WELCOME"); // Draw characters of the default font
-    renderTemp(true, 0, 88, 1);
+    renderTemp(true, 0, 88);
+    pinMode(AC_PIN, INPUT);
+    digitalWrite(AC_PIN, HIGH);
     acIndicator();
     display.display();
   }
   else
   {
     testdrawchar("ETHAN"); // Draw characters of the default font
-    renderTemp(true, 39, 88, 1);
+    renderTemp(true, 39, 88);
     drawClimateMode();
     display.display();
   }
 }
 
-uint8_t postion = 0;
 void leftRenderLoop()
 {
-  postion++;
-  renderTemp(false, 0, 88, postion / 255.0);
-  if (postion < 128)
-  {
-    acIndicator();
-  }
+  renderTemp(false, 0, 88);
+  acIndicator();
 }
 
 void rightRenderLoop()
 {
-  renderTemp(false, 39, 88, 1);
+  renderTemp(false, 39, 88);
   drawClimateMode();
   display.display();
 }

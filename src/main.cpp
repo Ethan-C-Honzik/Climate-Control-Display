@@ -116,31 +116,31 @@ void testdrawchar(char message[])
 
 void drawClimateMode(void)
 {
-  // TODO: determine based on digital reads
-  uint8_t test = millis() / 2000;
-  switch (test)
+  byte code = 0;
+  bitWrite(code, 0, digitalRead(10));
+  bitWrite(code, 1, digitalRead(9));
+  bitWrite(code, 2, digitalRead(8));
+  bitWrite(code, 3, digitalRead(7));
+  switch (code)
   {
-  case 1:
+  case 0b00001001:
     display.drawBitmap(0, 0, climateFeet, LOGO_WIDTH, LOGO_HEIGHT, 1);
     break;
-  case 2:
+  case 0b00000110:
     display.drawBitmap(0, 0, climateFace, LOGO_WIDTH, LOGO_HEIGHT, 1);
     break;
-  case 3:
+  case 0b00001100:
     display.drawBitmap(0, 0, climateFeetFace, LOGO_WIDTH, LOGO_HEIGHT, 1);
     break;
-  case 4:
+  case 0b00000011:
     display.drawBitmap(0, 0, climateFeetDefrost, LOGO_WIDTH, LOGO_HEIGHT, 1);
-    break;
-  case 5:
-    display.drawBitmap(0, 0, climateDefrost, LOGO_WIDTH, LOGO_HEIGHT, 1);
     break;
   default:
     break;
   }
 }
 
-const uint8_t BUFFER_SIZE = 32;
+const uint8_t BUFFER_SIZE = 16;
 uint16_t buffer[BUFFER_SIZE];
 uint8_t position = 0;
 void renderTemp(bool animate, uint8_t start, uint8_t size)
@@ -152,6 +152,7 @@ void renderTemp(bool animate, uint8_t start, uint8_t size)
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
       buffer[i] = value;
+      delay(10);
     }
   }
   else
@@ -162,7 +163,9 @@ void renderTemp(bool animate, uint8_t start, uint8_t size)
   {
     total += buffer[i];
   }
-  float percent = total / (1023.0 * BUFFER_SIZE);
+  float percent = total / (1020.0 * BUFFER_SIZE);
+  percent = min(percent, 1.0);
+  percent = max(percent, 0);
   // TODO: percent is based on analog read
   display.drawLine(start, 0, start + size, 0, SSD1306_WHITE);
   if (animate)
@@ -224,7 +227,7 @@ void renderTemp(bool animate, uint8_t start, uint8_t size)
 
 void acIndicator()
 {
-  if (digitalRead(AC_PIN))
+  if (!digitalRead(AC_PIN))
   {
     return;
   }
@@ -234,7 +237,7 @@ void acIndicator()
   display.print(F("AC"));
 }
 
-const bool left = true;
+const bool left = false;
 void setup()
 {
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -259,15 +262,23 @@ void setup()
 
   if (left)
   {
-    testdrawchar("WELCOME"); // Draw characters of the default font
-    renderTemp(true, 0, 88);
     pinMode(AC_PIN, INPUT);
     digitalWrite(AC_PIN, HIGH);
+    testdrawchar("WELCOME"); // Draw characters of the default font
+    renderTemp(true, 0, 88);
     acIndicator();
     display.display();
   }
   else
   {
+    pinMode(10, INPUT);
+    digitalWrite(10, HIGH);
+    pinMode(9, INPUT);
+    digitalWrite(9, HIGH);
+    pinMode(8, INPUT);
+    digitalWrite(8, HIGH);
+    pinMode(7, INPUT);
+    digitalWrite(7, HIGH);
     testdrawchar("ETHAN"); // Draw characters of the default font
     renderTemp(true, 39, 88);
     drawClimateMode();
